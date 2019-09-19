@@ -92,7 +92,8 @@ var colorDict = {
                   'green': '#0E0',                  
                   'blue': '#00E',                   
                   'gold': '#EE2',
-                  'mix': '#0EE'
+                  'mix': '#0EE',
+                  'grey': '#CCC'
                  }
                  
 /*var colorPair = {
@@ -442,9 +443,16 @@ function drawCorruption(csvPath, url, callback = function(){console.log('finishe
                                                              });
          -
           $('#svgCorruption > path').hover(function() {                        
-              $(this).attr('fill', brighter($(this).attr('fill')));                                            
+              var targets = $("path[data-county='" + $(this).attr('data-county') + "']");
+              targets.each(function (index) {
+                  $(this).attr('fill', brighter($(this).attr('fill')));
+              });
+
           }, function() {
-              $(this).attr('fill', $(this).attr('data-original-color'));
+              var targets = $("path[data-county='" + $(this).attr('data-county') + "']");
+              targets.each(function (index) {
+                  $(this).attr('fill', $(this).attr('data-original-color'));
+              });
           })
           
           console.log("drawTopo");
@@ -483,13 +491,13 @@ function drawOwner(url) {
           
           switch(countyOwner[feature.properties.name]) {
               case 'b':
-                  color = "#00F";
+                  color = colorDict['blue'];
                   break;
               case 'g':
-                  color = "#0F0";
+                  color = colorDict['green'];
                   break;
               case 'n':
-                  color = "#CCC";
+                  color = colorDict['grey'];
                   break;
           }
                
@@ -500,8 +508,8 @@ function drawOwner(url) {
         .enter().append("path").attr("d",path);
         
       d3.select("#svgCountyOwner").selectAll("path").attr({'fill': function(d){console.log(d);return d.properties.color;}, 
-                                                            'data-original-color': function(d){console.log(d);return d.properties.color;},
-                                                            'data-county': function(d){return d.properties.county;}
+                                                           'data-original-color': function(d){return d.properties.color;},
+                                                           'data-county': function(d){console.log(d); return d.properties.name;}
                                                              });
       
       $("#svgCountyOwner").animate({
@@ -509,16 +517,40 @@ function drawOwner(url) {
         left: "760px"
       }, 2000, function() {
         // Animation complete.
+        
+        var countOverLap = 0;
+        var countTotal = 0;
+        
+        $('#svgCountyOwner > path').each(function(index) {
+            countTotal += 1;
+            console.log($("#svgCorruption > path[data-county='" + $(this).attr('data-county') + "']").attr('data-original-color'), colorDict['mix'])
+            if($("#svgCorruption > path[data-county='" + $(this).attr('data-county') + "']").attr('data-original-color') == $(this).attr('data-original-color') ||
+               $("#svgCorruption > path[data-county='" + $(this).attr('data-county') + "']").attr('data-original-color') == colorDict['mix']) {
+                countOverLap += 1;
+            }            
+        });
+        
+        console.log(countOverLap / countTotal * 100);
+        
       });
       
       
-      $('#svgCountyOwner > path').hover(function() {                        
-              $(this).attr('fill', brighter($(this).attr('fill')));                                            
+      $('#svgCountyOwner > path').hover(function() {                                      
+              var targets = $("path[data-county='" + $(this).attr('data-county') + "']");
+              targets.each(function (index) {
+                  $(this).attr('fill', brighter($(this).attr('fill')));
+              });
+
           }, function() {
-              $(this).attr('fill', $(this).attr('data-original-color'));
+              var targets = $("path[data-county='" + $(this).attr('data-county') + "']");
+              targets.each(function (index) {
+                  $(this).attr('fill', $(this).attr('data-original-color'));
+              });
           })
       
-    });
+      });
+
+      
 
 }
 
