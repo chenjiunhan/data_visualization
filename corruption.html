@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<style>
+
+path {
+  stroke: #fff;
+  stroke-width: .5px;
+}
+
+svg {
+  display: inline-block;
+}
+
+.bar {
+  fill: steelblue;
+}
+ 
+.bar:hover {
+  fill: brown;
+}
+ 
+.axis {
+  font: 10px sans-serif;
+}
+ 
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+ 
+.x.axis path { 
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+</style>
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+<!--<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="https://d3js.org/topojson.v1.min.js"></script> 
+
+
+
+</head>
+<body>
+<br>
+<div class="container d-flex flex-column justify-content-center align-items-center">
+    <div class="row h-100">
+        <div class="col">
+            <button type="button" class="btn btn-primary" onClick="drawDefault(csvPath, url)">貪污人數縣市分布</button>
+        </div>
+        <div class="col">
+            <button type="button" class="btn btn-primary" onClick="drawComparison(csvPath, url)">與縣市版圖比較</button>
+        </div>
+    </div>
+</div>
+<br>
+
+<div id="svgs" class="container-fluid">
+    <div id="svgRow" class="row h-100">
+      <!--<div id="svg1" class="col">
+          
+      </div>
+      <div id="svg2" class="col">
+          
+      </div>-->
+  </div>
+</div>
+<script>
+
+var width = screen.width / 2 - 200;
+var height = 1000;
+var barChartHeight = 500;
+var scale = 8000;   
+
+var url = "data/map/topojson/counties.json"
+var csvPath = "data/corruption/corruption_clean.csv"
+var csv = null;
+
+var colorDict = { 
+                  'green': '#0E0',                  
+                  'blue': '#00E',                   
+                  'gold': '#EE2',
+                  'mix': '#0EE'
+                 }
+                 
+/*var colorPair = {
+                  colorDict['green']: colorDict['brightGreen'],
+                  colorDict['brightGreen']: colorDict['green'],
+                  colorDict['blue']: colorDict['brightGreen'],
+                  colorDict['brightGreen']: colorDict['blue']  
+                }*/
+
+
+function brighter(colorHex) {
+    console.log(colorHex);
+    r = Math.min(parseInt(colorHex.substring(1, 2), 16) + 8, 15).toString(16).toUpperCase();
+    g = Math.min(parseInt(colorHex.substring(2, 3), 16) + 8, 15).toString(16).toUpperCase();
+    b = Math.min(parseInt(colorHex.substring(3, 4), 16) + 8, 15).toString(16).toUpperCase();
+    console.log('#' + r + g + b)
+
+    return '#' + r + g + b
+}
+
+
+drawDefault(csvPath, url)
+//drawCorruption(csvPath, url);
+//drawOwner(countyOwner, url);
+
+function remove() {
+    $('svg').remove();
+}
+
+function drawDefault(csvPath, url) {
+    remove();
+    drawCorruption(csvPath, url, drawStat);
+    //drawStat(csvPath, url);
+}
+
+function drawComparison(csvPath, url) {
+    remove();
+    drawCorruption(csvPath, url);
+    drawOwner(url);
+}
+
+function drawStat(csvPath, url) {   
+
+    if(!csv) {
+        d3.csv(csvPath, function(d) {  
+          return {    
+            county: d.county,
+            region: d.region,
+            name: d.name,
+            party: d.party,
+            status: d.status
+          };
+        }, function(error, rows) {              
+            csv = rows
+            console.log("drawGraph2")
+            drawGraph(csv, url);
+            //console.log(d3.data(rows));    
+        });        
+    } else {
+        console.log("drawGraph3")
+        drawGraph(csv, url);
+    }
+    
+    function drawGraph(csv, url) {
+        console.log("drawGraph")
+        console.log(csv)
+        /*var greenArray = csv.filter(obj => {
+            return obj.party === "民主進步黨" && obj.county === feature.properties.name;
+        })*/
+        
+        
+        
+        var greenRows = csv.filter(obj => {
+            return obj.party === "民主進步黨" && obj.county === "臺南市"
+        })
+
+        /*greenRows.forEach(function(row, key) {
+            console.log('greenRows')
+            countY.push(row.party)
+        })*/
+        
+        var blueRows = csv.filter(obj => {
+            return obj.party === "中國國民黨" && obj.county === "臺南市"
+        })
+
+        /*blueRows.forEach(function(row, key) {
+            console.log('!!', row)
+            countY.push(row.party)
+        })*/                       
+        
+        var data = [{"x": "中國國民黨", "y": blueRows.length}, {"x": "民主進步黨", "y": greenRows.length}]           
+        
+        
+        /*width = 10
+        
+        var data = d3.layout.histogram()(countY.map(x));
+        
+        var x = d3.scale.ordinal()
+            .domain(["中國國民黨", "民主進步黨"])
+            .rangeRoundBands([0, width]);
+            
+        var y = d3.scale.linear()
+                .range([500, 100]);
+                    
+        
+        console.log(myHistogram, countY)*/
+        
+        
+        var blueColor = "blue";
+        var greenColor = "green";
+
+        // Generate a 1000 data points using normal distribution with mean=20, deviation=5
+        //var values = d3.range(1000).map(d3.random.normal(20, 5));
+
+        // A formatter for counts.
+        var formatCount = d3.format(",.0f");
+
+        var margin = {top: 200, right: 50, bottom: 30, left: 50};
+        var height = barChartHeight;
+        
+        /*var x = d3.scale.linear()
+              .domain([min, max])
+              .range([0, width]);*/
+        
+        var x = d3.scale.ordinal()
+            .domain(["中國國民黨", "民主進步黨"])
+            .rangePoints([0, width], 1.0)                                                           
+        
+        console.log(data)
+        
+        // Generate a histogram using twenty uniformly-spaced bins.
+        /*var data = d3.layout.histogram()
+            .bins(x.ticks(20))
+            (values);*/
+
+        var yMax = d3.max(data, function(d){return d.y});
+        var yMin = d3.min(data, function(d){return d.y});
+        
+        var yMax = 12
+        
+        var blueColorScale = d3.scale.linear()
+                    .domain([yMin, yMax])
+                    .range([d3.rgb(blueColor).brighter(), d3.rgb(blueColor).darker()]);
+        var greenColorScale = d3.scale.linear()
+                    .domain([yMin, yMax])
+                    .range([d3.rgb(greenColor).brighter(), d3.rgb(greenColor).darker()]);
+
+        var y = d3.scale.linear()
+            .domain([0, yMax])
+            .range([height, 0]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+
+        var svg = d3.select("#svgRow").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .attr("class", "svg")
+          .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var bar = svg.selectAll(".bar")
+            .data(data)
+            .enter().append("g")
+            .attr("class", "bar")
+            .attr("transform", function(d) { console.log('dx', d.x, x(d.x)); return "translate(" + (x(d.x) - 50) + "," + y(d.y) + ")"; });
+
+        bar.append("rect")
+            .attr("x", 1)
+            .attr("width", 100)
+            .attr("height", function(d) { return height - y(d.y); })
+            .attr("fill", function(d) { return d.x == "民主進步黨" ? greenColorScale(d.y) : blueColorScale(d.y) });
+
+        bar.append("text")
+            .attr("dy", ".75em")
+            .attr("y", -12)
+            .attr("x", 50)
+            .attr("text-anchor", "middle")
+            .text(function(d) { return formatCount(d.y); });
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);        
+                 
+        function refresh(county){
+            // var values = d3.range(1000).map(d3.random.normal(20, 5));
+            
+            var greenRows = csv.filter(obj => {
+                return obj.party === "民主進步黨" && obj.county === county
+            })
+
+            /*greenRows.forEach(function(row, key) {
+                console.log('greenRows')
+                countY.push(row.party)
+            })*/
+            
+            var blueRows = csv.filter(obj => {
+                return obj.party === "中國國民黨" && obj.county === county
+            })
+
+            /*blueRows.forEach(function(row, key) {
+                console.log('!!', row)
+                countY.push(row.party)
+            })*/                       
+            
+            var data = [{"x": "中國國民黨", "y": blueRows.length}, {"x": "民主進步黨", "y": greenRows.length}]  
+
+            // Reset y domain using new data
+            var yMax = d3.max(data, function(d){return d.y});
+            var yMin = d3.min(data, function(d){return d.y});
+            
+            var yMax = 12
+                        
+            y.domain([0, yMax]);
+            console.log(yMin, yMax, height)
+            var blueColorScale = d3.scale.linear()
+                    .domain([yMin, yMax])
+                    .range([d3.rgb(blueColor).brighter(), d3.rgb(blueColor).darker()]);
+                    
+            var greenColorScale = d3.scale.linear()
+                        .domain([yMin, yMax])
+                        .range([d3.rgb(greenColor).brighter(), d3.rgb(greenColor).darker()]);
+
+            var bar = svg.selectAll(".bar").data(data);
+
+            // Remove object with data
+            bar.exit().remove();
+
+            bar.transition()
+              .duration(1000)
+              .attr("transform", function(d) { return "translate(" + (x(d.x) - 50) + "," + y(d.y) + ")"; });
+
+            bar.select("rect")
+                .transition()
+                .duration(1000)
+                .attr("height", function(d) { console.log(height - y(d.y)); return height - y(d.y); })
+                .attr("fill", function(d) { return d.x == "民主進步黨" ? greenColorScale(d.y) : blueColorScale(d.y) });
+
+            bar.select("text")
+                .transition()
+                .duration(1000)
+                .text(function(d) { return formatCount(d.y); });
+
+        }                
+        $('#svgCorruption > path').on('click', function(e) {            
+            
+            refresh($(this).attr('data-county'));
+            
+                        
+            /*var studentSymbols = ["F", "E", "D", "C", "C", "C", "C", "B", "B", "A", "A+"];
+
+            var x = d3.scale.ordinal()
+                .domain(["F", "E", "D", "C", "B", "A", "A+"])
+                .rangeRoundBands([0, width]);
+
+            // Generate a histogram using twenty uniformly-spaced bins.
+            var myHistogram = d3.layout.histogram()
+                (studentSymbols);*/
+            
+        })
+        
+    }
+}
+
+function drawCorruption(csvPath, url, callback = function(){console.log('finished')}) {    
+
+    var svgCorruption = d3.select("#svgRow").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("id", "svgCorruption");   
+
+    if(!csv) {
+        d3.csv(csvPath, function(d) {  
+          return {    
+            county: d.county,
+            region: d.region,
+            name: d.name,
+            party: d.party,
+            status: d.status
+          };
+        }, function(error, rows) {  
+            csv = rows
+            drawTopo(csv, url);
+            //console.log(d3.data(rows));    
+        });
+        
+    } else {        
+        drawTopo(csv, url);
+    }
+
+    function drawTopo(csv, url) {
+    
+        d3.json(url, function(error, topodata) {
+          if (error) throw error;
+          
+          //console.log("topojson", topodata);
+          //console.log("AA", topojson.feature(topodata, topodata.objects["map"]));
+          var features = topojson.feature(topodata, topodata.objects["map"]).features;
+          var path = d3.geo.path().projection(
+            d3.geo.mercator().center([121,25]).scale(scale)
+          );
+          
+          var a = "";
+          
+          features.forEach(function (feature, index) {
+          
+              a += "\"" + feature.properties.name + "\": \"0\", "
+            
+              var greenArray = csv.filter(obj => {
+                return obj.party === "民主進步黨" && obj.county === feature.properties.name;
+              })
+              
+              var blueArray = csv.filter(obj => {          
+                //console.log(obj.party, obj.county, feature.properties.name);  
+                return obj.party === "中國國民黨" && obj.county === feature.properties.name;
+              })
+              
+              if(blueArray.length === 0 && greenArray.length === 0) {
+                  
+                  color = colorDict['gold'];
+                  
+              } else {
+                  
+                  if(blueArray.length > greenArray.length) {
+                      color = colorDict['blue'];
+                  } else {                  
+                      if(blueArray.length < greenArray.length) {          
+                          color = colorDict['green'];
+                      } else {
+                          color = colorDict['mix'];
+                      }
+                  }
+                  
+              }
+          
+              feature.properties.color = color;
+          });
+          
+          d3.select("#svgCorruption").selectAll("path").data(features)
+            .enter().append("path").attr("d",path);
+            
+          d3.select("#svgCorruption").selectAll("path").attr({'fill': function(d){return d.properties.color;}, 
+                                                              'data-original-color': function(d){return d.properties.color;},
+                                                              'data-county': function(d){return d.properties.name;}
+                                                             });
+         -
+          $('#svgCorruption > path').hover(function() {                        
+              $(this).attr('fill', brighter($(this).attr('fill')));                                            
+          }, function() {
+              $(this).attr('fill', $(this).attr('data-original-color'));
+          })
+          
+          console.log("drawTopo");
+          
+          callback(csvPath, url);
+          
+        });
+    }
+
+}
+
+function drawOwner(url) {
+
+    var svgCountyOwner = d3.select("#svgRow").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("id", "svgCountyOwner")
+    .style("position", "absolute")
+    .style("left", "0px")
+    .style("opacity", "0.2")
+    ;
+
+    var countyOwner = {"連江縣": "b", "金門縣": "b", "宜蘭縣": "b", "彰化縣": "b", "南投縣": "b", "雲林縣": "b", "屏東縣": "g", "臺東縣": "b", "花蓮縣": "b", "澎湖縣": "b", "基隆市": "g", "新竹市": "g", "臺北市": "n", "新北市": "b", "臺中市": "b", "臺南市": "g", "桃園市": "g", "苗栗縣": "b", "新竹縣": "b", "嘉義市": "b", "嘉義縣": "g", "高雄市": "b"};
+    
+    d3.json(url, function(error, topodata) {
+      if (error) throw error;
+      
+      //console.log("topojson", topodata);
+      //console.log("AA", topojson.feature(topodata, topodata.objects["map"]));
+      var features = topojson.feature(topodata, topodata.objects["map"]).features;
+      var path = d3.geo.path().projection(
+        d3.geo.mercator().center([121,25]).scale(scale)
+      );
+           
+      features.forEach(function (feature, index) {
+          
+          switch(countyOwner[feature.properties.name]) {
+              case 'b':
+                  color = "#00F";
+                  break;
+              case 'g':
+                  color = "#0F0";
+                  break;
+              case 'n':
+                  color = "#CCC";
+                  break;
+          }
+               
+          feature.properties.color = color;
+      });                                    
+      
+      d3.select("#svgCountyOwner").selectAll("path").data(features)
+        .enter().append("path").attr("d",path);
+        
+      d3.select("#svgCountyOwner").selectAll("path").attr({'fill': function(d){console.log(d);return d.properties.color;}, 
+                                                            'data-original-color': function(d){console.log(d);return d.properties.color;},
+                                                            'data-county': function(d){return d.properties.county;}
+                                                             });
+      
+      $("#svgCountyOwner").animate({
+        opacity: 1.0,
+        left: "760px"
+      }, 2000, function() {
+        // Animation complete.
+      });
+      
+      
+      $('#svgCountyOwner > path').hover(function() {                        
+              $(this).attr('fill', brighter($(this).attr('fill')));                                            
+          }, function() {
+              $(this).attr('fill', $(this).attr('data-original-color'));
+          })
+      
+    });
+
+}
+
+
+</script>
+
+
